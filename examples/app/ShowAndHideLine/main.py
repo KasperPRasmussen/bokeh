@@ -6,18 +6,14 @@ from bokeh.models import ColumnDataSource, HBox, VBoxForm
 from bokeh.models.widgets import Select, CheckboxButtonGroup
 from bokeh.io import curdoc
 
-a = 1
-b = 0
 
 data_select = Select(title="Output:", value="hip_strength", options=["hip_strength", "knee_strength"])
-checkbox_button_group = CheckboxButtonGroup(labels=["first", "second"], active=[0, 1])
+checkbox_button_group = CheckboxButtonGroup(labels=["option 1", "option 2"], active=[0, 1])
 
 source = ColumnDataSource(data=dict(x=[], y=[]))
-checkbox_source = ColumnDataSource(data=dict(first=[], second=[]))
-
 
 p = Figure(plot_height=600, plot_width=800, title="", toolbar_location=None)
-p.line(x="x", y="y", alpha="?", source=source)
+renderer = p.line(x="x", y="y", alpha=1, source=source)
 
 
 # Fast direct read from hdf5
@@ -35,11 +31,12 @@ def select_data():
     with h5py.File('demo_data.hdf5', 'r') as f:
         return get_data(f, data_val)
 
-def show_hide():
-    if checkbox_button_group.active == 0:
-        return 0
-    if checkbox_button_group.active == 1:
-        return 1
+def show_hide(active):
+    if 0 in active:
+        alpha = 1
+    elif 0 not in active:
+        alpha = 0
+    renderer.glyph.line_alpha = alpha
 
 
 def update_data(attrname, old, new):
@@ -48,16 +45,12 @@ def update_data(attrname, old, new):
     y = select_data()
     source.data = dict(x=x, y=y)
 
-    first = show_hide()
-    checkbox_source.data = dict(first=first)
-
 
 data_select.on_change('value', update_data)
-checkbox_button_group.on_click(update_data)
+checkbox_button_group.on_click(show_hide)
 
 inputs = VBoxForm(data_select, checkbox_button_group, width=300)
 
 update_data(None, None, None)
 
 curdoc().add_root(HBox(inputs, p, width=1100))
-
